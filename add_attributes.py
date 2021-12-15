@@ -394,9 +394,9 @@ if __name__ =='__main__':
         vid = cv2.VideoCapture(0)
         ret, frame = vid.read()
         # frame = cv2.resize(frame, (int(200/480*640),200),interpolation = cv2.INTER_AREA)
-        frame = cv2.resize(frame, (200,200),interpolation = cv2.INTER_AREA)
-        frame = pixelate(frame, 150,150)
-        frame = cv2.GaussianBlur(frame, (5,5),0)
+        # frame = cv2.resize(frame, (200,200),interpolation = cv2.INTER_AREA)
+        # frame = pixelate(frame, 150,150)
+        # frame = cv2.GaussianBlur(frame, (5,5),0)
         vid.release()
         if  ret is None: continue
         # for glass,filename in glasses_png:
@@ -412,7 +412,8 @@ if __name__ =='__main__':
         _landmarks = landmarks.get_lendmarks(frame)
 
         mod = equalized
-        mod = add_glasses(mod, pixelate(glasses_png[8][0], 200,2*100), _landmarks=_landmarks)
+        _glasses = [img for img,f in glasses_png if 'sun_240' in f][0]
+        mod = add_glasses(mod, pixelate(_glasses, 200,2*100), _landmarks=_landmarks)
         mod = add_moustache(mod, moustaches_png[0][0], _landmarks=_landmarks)
         mod = add_beard(mod,
                 textures,

@@ -35,17 +35,17 @@ def load_dataset(dataset_folder='utkface', labels_csv='labels.csv'):
     del y
     return _X, _y
 
-def age_estimation(age, texture_dictionary):
-    min = 200," "
-    keys = list(texture_dictionary.keys())
-    random.shuffle(keys)
-    for k in keys:
-        k.split("_")
-        age_in_list = int (k.split("_")[0])
-        diff = np.abs(age_in_list - age)
-        if(diff < min[0]):
-            min = diff,k
-    return min[1]
+# def age_estimation(age, texture_dictionary):
+#     min = 200," "
+#     keys = list(texture_dictionary.keys())
+#     random.shuffle(keys)
+#     for k in keys:
+#         k.split("_")
+#         age_in_list = int (k.split("_")[0])
+#         diff = np.abs(age_in_list - age)
+#         if(diff < min[0]):
+#             min = diff,k
+#     return min[1]
 
 
 
@@ -54,34 +54,15 @@ if __name__ == '__main__':
     padded = np.zeros((800, 800, 3), dtype=np.uint8)
 
 
-    images, labels = load_dataset()
+    images, labels = load_dataset('../utkface','../labels_prof.csv')
     images, labels = shuffle(images, labels, random_state=42)
-    images, labels = images[600:620],labels[600:620]
+    images, labels = images[500:520],labels[500:520]
 
 
-    folderBeard = constants.FOLDER_GENERATED_BEARD
+    folderMoustache = constants.GENERATED_MOUSTACHE_FOLDER
 
-    if not os.path.exists(folderBeard):
-        os.mkdir(folderBeard)
-
-    beard_texture_base_img = '54_0_0_20170104211558436'
-
-    d = dict()
-    for elem in os.listdir(constants.BEARD_PNG_TEXTURES_FOLDER):
-        t = cv2.imread(constants.BEARD_PNG_TEXTURES_FOLDER + "/" + elem)
-        p1 = t[0:5, 0:5, :]
-        p2 = t[0:5, 5:10, :]
-        p3 = t[5:10, 0:5, :]
-        p4 = t[5:10, 5:10, :]
-        index = elem.rfind("_")
-        key = elem[:index]
-        if(key not in d):
-            d[key] = []
-
-        d[key].append(p1)
-        d[key].append(p2)
-        d[key].append(p3)
-        d[key].append(p4)
+    if not os.path.exists(folderMoustache):
+        os.mkdir(folderMoustache)
 
     print("loaded")
 
@@ -93,30 +74,27 @@ if __name__ == '__main__':
     i = 0
 
     for img in images:
-
         filename=labels[i,3]
         ext = '.jpg.chip.jpg'
         f_name = filename.split(ext)[0]
         age = int (f_name.split("_")[0])
+        gender = int (f_name.split("_")[1])
 
+        has_beard = int(labels[i,BEARD])
+        has_moustache = int(labels[i,MOUSTACHE])
 
-        if beard_filter(f_name):
-
-            cv2.imshow("original",img)
+        if (beard_filter(f_name) and (has_moustache==0)):
 
             # mod = add_attributes.add_beard(img, textures)
+            cv2.imshow('originale',img)
             padded[300:500, 300:500, :] = img
-            key = age_estimation(age,d)
-            mouth_near = np.random.uniform(0.2,0.8)
-            beard_strength = np.random.uniform(0.4,0.6)
-            beard_existance = np.random.uniform(0.4,0.6)
-            becco = np.random.choice((True,False))
-            z = add_attributes.add_beard(padded, d[key],mouth_near,beard_strength,beard_existance,becco)
+            _moustache = random.sample(add_attributes.moustaches_png, k=1)[0][0]
+            z = add_attributes.add_moustache(padded, _moustache)
             z = z[300:500, 300:500, :]
-            z = z * 255.0
+            # z = z * 255.0
             z = z.astype(np.uint8)
             print(z)
-            cv2.imshow('Added beard', z)
+            cv2.imshow('Added moustache', z)
 
             print("Ti piace la foto? y/n")
             k = cv2.waitKey(0)
@@ -125,11 +103,16 @@ if __name__ == '__main__':
                 if k == ord('n'):
                     break
                 if k == ord('y'):
-                    file_path = f'{folderBeard}' + '/' + f_name + '_add_beard' + ext
+                    beard.append(labels[i, BEARD])
+                    glasses.append(labels[i, GLASSES])
+
+                    file_path = f'{folderMoustache}' + '/' + f_name + '_add_moustache' + ext
+                    if not has_beard:
+                        moustache.append(1)
+                    else:
+                        moustache.append(0)
+
                     cv2.imwrite(file_path, z)
-                    beard.append(1)
-                    moustache.append(labels[i, 1])
-                    glasses.append(labels[i, 2])
                     filechanged.append(file_path.split('/')[1])
                     break
             cv2.destroyAllWindows()
@@ -139,6 +122,6 @@ if __name__ == '__main__':
 
         i = i + 1
 
-    name_csv="GENERATED_BEARD.csv"
+    name_csv=constants.GENERATED_MOUSTACHE_CSV
     df = pd.DataFrame(data={'filename': filechanged, 'beard': beard, 'moustaches': moustache, 'glasses': glasses})
     df.to_csv(f"{name_csv}", index=False, header=False, mode="a")

@@ -348,6 +348,84 @@ def add_moustache(img, moustache, _landmarks=None, a=0.3):
         int(moustache_face_center[1])-int(moustache.shape[0]/2))
     return tot
 
+def add_soft_moustache(img, textures, nose_near=0.5, beard_strength=0.5, beard_existence=0.5, _landmarks=None):
+    if (_landmarks is None):
+        _landmarks = landmarks.get_lendmarks(img)
+    
+    if _landmarks is None: return img
+    h,w,_ = img.shape
+    shape = shape_to_np(_landmarks)
+
+    poly = []
+
+    _z = .5
+    poly.append(np.array([
+        int((1-_z)*shape[48][0]+(_z)*shape[4][0]), # x
+        shape[48][1]                               # y
+        ]   
+    ))
+
+    for i in range(48,54+1):
+        poly.append(shape[i])
+    poly.append(np.array([
+        int((1-_z)*shape[54][0]+(_z)*shape[12][0]), # x
+        shape[54][1]
+        ]
+    ))
+    for i,j in [
+                (35,53),
+                (34,52),
+                (33,51),
+                (32,50),
+                (31,49)
+            ]:
+        a=nose_near
+        poly.append((a*shape[i] + (1-a)*shape[j]).astype('int'))
+    
+        
+    total_beard = np.zeros_like(img)
+
+    grid_size = textures[0].shape[0]
+    for i in range(0,w//grid_size):
+        for j in range(0,h//grid_size):
+            total_beard[
+                    j*grid_size:(j+1)*grid_size,i*grid_size:(i+1)*grid_size,:
+                ]=sample(textures,k=1)[0]
+
+
+    total_beard = cv2.GaussianBlur(total_beard, [5,5],0)
+
+    mask = np.zeros_like(img)
+
+    for i in range(len(poly)-1):
+        cv2.line(mask, poly[i], poly[i+1], (0,255,0))
+    cv2.line(mask, poly[0],poly[-1],(0,255,0))
+    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    cv2.fillPoly(mask, np.array([poly],dtype=np.int32), 255)
+
+    mask = cv2.GaussianBlur(mask, [15,15], 100,sigmaY=10)
+    
+    mask = mask * beard_strength/255
+    _mask = np.zeros_like(img,dtype=np.float32)
+    _mask[:,:,0]=mask
+    _mask[:,:,1]=mask
+    _mask[:,:,2]=mask
+
+    mask = _mask
+
+    total_beard = np.array(total_beard, dtype=np.float32)/255
+    img = np.array(img, dtype=np.float32)/255
+    res=beard_existence*(mask)*total_beard+(1-mask)*img
+
+    # cv2.imshow('mask', 1.0-mask)
+    # cv2.imshow('img',img)
+    # cv2.imshow('(1-mask)*img',(1-mask)*img)
+    # cv2.imshow('(mask)*total_beard',(mask)*total_beard)
+    # cv2.imshow('tot',(mask)*total_beard+(1-mask)*img)
+    z=res
+    z = z * 255.0
+    z = z.astype(np.uint8)
+    return z
 
 def pixelate(input, pix_w=16, pix_h=16):
     height, width = input.shape[:2]
@@ -414,13 +492,14 @@ if __name__ =='__main__':
         mod = equalized
         _glasses = [img for img,f in glasses_png if 'sun_240' in f][0]
         mod = add_glasses(mod, pixelate(_glasses, 200,2*100), _landmarks=_landmarks)
-        mod = add_moustache(mod, moustaches_png[0][0], _landmarks=_landmarks)
-        mod = add_beard(mod,
-                textures,
-                beard_strength=1,
-                beard_existence=0.3,
-                becco=False,
-                _landmarks=_landmarks)
+        # mod = add_moustache(mod, moustaches_png[0][0], _landmarks=_landmarks)
+        mod = add_soft_moustache(mod, textures,nose_near=0.5, beard_strength=.5, beard_existence=.5)
+        # mod = add_beard(mod,
+        #         textures,
+        #         beard_strength=1,
+        #         beard_existence=0.3,
+        #         becco=False,
+        #         _landmarks=_landmarks)
         cv2.imshow('edit',mod)
 
         k=cv2.waitKey(1000)

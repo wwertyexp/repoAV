@@ -29,8 +29,8 @@ def load_dataset(dataset_folder='../utkface', labels_csv='../labels_prof.csv'):
 
 X,Y = load_dataset()
 
-X=X[:900]
-Y=Y[:900]
+# X=X[:800]
+# Y=Y[:800]
 
 from sklearn.utils import shuffle
 X, Y = shuffle(X, Y, random_state=42)
@@ -40,10 +40,10 @@ if carica_tommaso:
     x=X[:400]
     y=Y[:400]
 else:
-    # x=X[400:800]
-    # y=Y[400:800]
-    x=X[800:900]
-    y=Y[800:900]
+    x=X[400:800]
+    y=Y[400:800]
+    # x=X[800:1200]
+    # y=Y[800:1200]
 
 print('loaded', len(x))
 male_glasses=[]
@@ -82,7 +82,7 @@ for i in range(len(x)):
             padded[300:500,300:500,:]=_x 
             z=add_attributes.add_glasses(padded, glasses)
             z=z[300:500,300:500,:]
-
+            print(f'iteration: {i}/{len(x)}')
             cv2.imshow('added', z)
             k=cv2.waitKey(0)
             if k==ord('y'):
@@ -98,6 +98,8 @@ for i in range(len(x)):
             if k==ord('q'):
                 break
 
-df=pd.DataFrame(data={'filename':filename, 'beard':beard,'moustaches':moustache,'glasses':glass})
+df=pd.DataFrame(
+    data={'filename':filename, 'beard':beard,'moustaches':moustache,'glasses':glass},
+    columns=['filename','beard','moustaches','glasses'])
 df.to_csv(f"{GENERATED_GLASSES_CSV}", index=False, header=False,mode='a')
 cv2.destroyAllWindows()

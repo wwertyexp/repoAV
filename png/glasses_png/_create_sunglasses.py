@@ -86,7 +86,7 @@ def _test():
 
 if __name__ == '__main__':
     # _test()
-    alphas = (240, 180, 90)
+    alphas = (240, 180, 90, 40,20)
     files = [x for x in os.listdir('.') 
                     if '.png' in x and not x.startswith('_') and not 'sun' in x]
     import pprint
